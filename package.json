@@ -1,0 +1,22 @@
+{
+  "name": "pixelfarm",
+  "version": "1.0.0",
+  "description": "A Stardew Valley inspired farming RPG built with Phaser 3 + TypeScript",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": ["phaser", "game", "farming", "rpg"],
+  "author": "Anthony Pan",
+  "license": "MIT",
+  "dependencies": {
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.11"
+  }
+}
