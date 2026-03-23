@@ -1,11 +1,17 @@
 import Phaser from 'phaser';
-import { Direction, TILE_SIZE, PLAYER_SPEED, COLORS } from '../utils/constants';
+import {
+  Direction,
+  TILE_SIZE,
+  PLAYER_SPEED,
+  WALK_ANIMATION_SPEED,
+  Tool
+} from '../utils/constants';
 
 export class Player {
-  private graphics: Phaser.GameObjects.Graphics;
-  private sprite: Phaser.GameObjects.Container;
+  private sprite: Phaser.GameObjects.Sprite;
   private direction: Direction;
   private isMoving: boolean;
+  private currentTool: Tool = Tool.NONE;
   private keys: {
     up: Phaser.Input.Keyboard.Key;
     down: Phaser.Input.Keyboard.Key;
@@ -17,6 +23,12 @@ export class Player {
     d: Phaser.Input.Keyboard.Key;
     e: Phaser.Input.Keyboard.Key;
     i: Phaser.Input.Keyboard.Key;
+    num1: Phaser.Input.Keyboard.Key;
+    num2: Phaser.Input.Keyboard.Key;
+    num3: Phaser.Input.Keyboard.Key;
+    num4: Phaser.Input.Keyboard.Key;
+    num5: Phaser.Input.Keyboard.Key;
+    num6: Phaser.Input.Keyboard.Key;
   };
   private animFrame: number = 0;
   private animTimer: number = 0;
@@ -25,11 +37,9 @@ export class Player {
     this.direction = Direction.DOWN;
     this.isMoving = false;
 
-    this.sprite = scene.add.container(x, y);
-    this.graphics = scene.add.graphics();
-    this.sprite.add(this.graphics);
-
-    this.drawPlayer();
+    // Create sprite (16x32 player)
+    this.sprite = scene.add.sprite(x, y, this.getSpriteKey());
+    this.sprite.setOrigin(0.5, 0.5);
 
     const kb = scene.input.keyboard;
     if (!kb) throw new Error('Keyboard not available');
@@ -44,7 +54,13 @@ export class Player {
       s: kb.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       d: kb.addKey(Phaser.Input.Keyboard.KeyCodes.D),
       e: kb.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-      i: kb.addKey(Phaser.Input.Keyboard.KeyCodes.I)
+      i: kb.addKey(Phaser.Input.Keyboard.KeyCodes.I),
+      num1: kb.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
+      num2: kb.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
+      num3: kb.addKey(Phaser.Input.Keyboard.KeyCodes.THREE),
+      num4: kb.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR),
+      num5: kb.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE),
+      num6: kb.addKey(Phaser.Input.Keyboard.KeyCodes.SIX)
     };
   }
 
@@ -53,6 +69,7 @@ export class Player {
     let velocityX = 0;
     let velocityY = 0;
 
+    // Movement input
     if (this.keys.up.isDown || this.keys.w.isDown) {
       velocityY = -1;
       this.direction = Direction.UP;
@@ -73,56 +90,46 @@ export class Player {
       this.isMoving = true;
     }
 
+    // Normalize diagonal movement
     if (velocityX !== 0 && velocityY !== 0) {
       velocityX *= 0.707;
       velocityY *= 0.707;
     }
 
+    // Apply movement
     this.sprite.x += velocityX * PLAYER_SPEED * (delta / 1000);
     this.sprite.y += velocityY * PLAYER_SPEED * (delta / 1000);
 
+    // Animation
     if (this.isMoving) {
       this.animTimer += delta;
-      if (this.animTimer > 200) {
+      if (this.animTimer > WALK_ANIMATION_SPEED) {
         this.animTimer = 0;
-        this.animFrame = (this.animFrame + 1) % 4;
-        this.drawPlayer();
+        this.animFrame = (this.animFrame + 1) % 3;
+        this.updateSprite();
       }
     } else {
-      this.animFrame = 0;
-      this.drawPlayer();
+      if (this.animFrame !== 0) {
+        this.animFrame = 0;
+        this.updateSprite();
+      }
     }
   }
 
-  private drawPlayer(): void {
-    this.graphics.clear();
+  setTool(tool: Tool): void {
+    this.currentTool = tool;
+    this.updateSprite();
+  }
 
-    const offset = this.isMoving ? Math.sin(this.animFrame * Math.PI / 2) * 2 : 0;
-
-    this.graphics.fillStyle(COLORS.PLAYER);
-    this.graphics.fillRect(-8, -8 + offset, 16, 16);
-
-    this.graphics.fillStyle(0xffffff);
-    switch (this.direction) {
-      case Direction.DOWN:
-        this.graphics.fillRect(-4, -2 + offset, 3, 3);
-        this.graphics.fillRect(1, -2 + offset, 3, 3);
-        break;
-      case Direction.UP:
-        this.graphics.fillRect(-4, -4 + offset, 3, 3);
-        this.graphics.fillRect(1, -4 + offset, 3, 3);
-        break;
-      case Direction.LEFT:
-        this.graphics.fillRect(-5, -2 + offset, 3, 3);
-        break;
-      case Direction.RIGHT:
-        this.graphics.fillRect(2, -2 + offset, 3, 3);
-        break;
+  private getSpriteKey(): string {
+    if (this.currentTool !== Tool.NONE && this.currentTool !== Tool.SEEDS) {
+      return `player_${this.direction}_tool_${this.currentTool}`;
     }
+    return `player_${this.direction}_${this.animFrame}`;
+  }
 
-    this.graphics.fillStyle(0x000000);
-    this.graphics.fillRect(-6, 4 + offset, 4, 6);
-    this.graphics.fillRect(2, 4 + offset, 4, 6);
+  private updateSprite(): void {
+    this.sprite.setTexture(this.getSpriteKey());
   }
 
   getX(): number {
@@ -163,6 +170,10 @@ export class Player {
     }
   }
 
+  getDirection(): Direction {
+    return this.direction;
+  }
+
   isActionPressed(): boolean {
     return Phaser.Input.Keyboard.JustDown(this.keys.e);
   }
@@ -171,8 +182,22 @@ export class Player {
     return Phaser.Input.Keyboard.JustDown(this.keys.i);
   }
 
+  getToolSelection(): number | null {
+    if (Phaser.Input.Keyboard.JustDown(this.keys.num1)) return 0;
+    if (Phaser.Input.Keyboard.JustDown(this.keys.num2)) return 1;
+    if (Phaser.Input.Keyboard.JustDown(this.keys.num3)) return 2;
+    if (Phaser.Input.Keyboard.JustDown(this.keys.num4)) return 3;
+    if (Phaser.Input.Keyboard.JustDown(this.keys.num5)) return 4;
+    if (Phaser.Input.Keyboard.JustDown(this.keys.num6)) return 5;
+    return null;
+  }
+
   setPosition(x: number, y: number): void {
     this.sprite.x = x;
     this.sprite.y = y;
+  }
+
+  destroy(): void {
+    this.sprite.destroy();
   }
 }

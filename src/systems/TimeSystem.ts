@@ -1,15 +1,16 @@
 import Phaser from 'phaser';
-import { DAY_LENGTH_MS, DAYS_IN_MONTH } from '../utils/constants';
+import { DAY_LENGTH_MS } from '../utils/constants';
+import { SeasonSystem } from './SeasonSystem';
 
 export class TimeSystem {
   private scene: Phaser.Scene;
-  private currentDay: number;
   private currentTime: number; // 0 to DAY_LENGTH_MS
   private timeSpeed: number = 1;
+  private seasonSystem: SeasonSystem;
 
-  constructor(scene: Phaser.Scene, startDay: number = 1) {
+  constructor(scene: Phaser.Scene, seasonSystem: SeasonSystem) {
     this.scene = scene;
-    this.currentDay = startDay;
+    this.seasonSystem = seasonSystem;
     this.currentTime = 0;
   }
 
@@ -23,16 +24,21 @@ export class TimeSystem {
   }
 
   advanceDay(): void {
-    this.currentDay++;
-    if (this.currentDay > DAYS_IN_MONTH) {
-      this.currentDay = 1;
-    }
+    const seasonChanged = this.seasonSystem.advanceDay();
     this.currentTime = 0;
-    this.scene.events.emit('dayChanged', this.currentDay);
+    this.scene.events.emit('dayChanged', this.seasonSystem.getDayInSeason());
+
+    if (seasonChanged) {
+      this.scene.events.emit('seasonChanged', this.seasonSystem.getCurrentSeason());
+    }
   }
 
   getDay(): number {
-    return this.currentDay;
+    return this.seasonSystem.getDayInSeason();
+  }
+
+  getSeasonSystem(): SeasonSystem {
+    return this.seasonSystem;
   }
 
   getTimeOfDay(): number {

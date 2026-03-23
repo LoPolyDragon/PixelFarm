@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SpriteGenerator } from '../sprites/SpriteGenerator';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -17,9 +18,16 @@ export class BootScene extends Phaser.Scene {
     const loadingText = this.add.text(width / 2, height / 2 - 50, 'Loading PixelFarm...', {
       fontSize: '20px',
       color: '#ffffff',
-      fontFamily: 'monospace'
+      fontFamily: 'Arial'
     });
     loadingText.setOrigin(0.5, 0.5);
+
+    const statusText = this.add.text(width / 2, height / 2 + 50, 'Generating pixel art...', {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontFamily: 'Arial'
+    });
+    statusText.setOrigin(0.5, 0.5);
 
     this.load.on('progress', (value: number) => {
       progressBar.clear();
@@ -31,10 +39,18 @@ export class BootScene extends Phaser.Scene {
       progressBar.destroy();
       progressBox.destroy();
       loadingText.destroy();
+      statusText.destroy();
     });
   }
 
   create(): void {
-    this.scene.start('MenuScene');
+    // Generate all sprites programmatically
+    const spriteGenerator = new SpriteGenerator(this);
+    spriteGenerator.generateAll();
+
+    // Add a small delay to show the sprites are generated
+    this.time.delayedCall(500, () => {
+      this.scene.start('MenuScene');
+    });
   }
 }
